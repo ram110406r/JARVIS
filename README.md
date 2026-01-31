@@ -1,3 +1,4 @@
+
 # JARVIS - Just A Rather Very Intelligent System
 
 A local, system-level AI assistant running on a laptop with strict safety enforcement and real-time internet access.

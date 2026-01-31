@@ -43,6 +43,62 @@ conversation = [
     {"role": "system", "content": SYSTEM_PROMPT}
 ]
 
+# Conversation pruning settings
+MAX_CONVERSATION_HISTORY = 10  # Keep system prompt + last N messages
+
+# ============================================================================
+# CORE LLM INTERFACE
+# ============================================================================
+
+def call_llm(messages: list) -> str | None:
+    """
+    Make a single LLM call to Ollama.
+    
+    Args:
+        messages: List of message dicts with 'role' and 'content' keys
+    
+    Returns:
+        Assistant response text, or None on error
+    """
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": MODEL,
+                "messages": messages,
+                "stream": False
+            },
+            timeout=30
+        ).json()
+        
+        return response["message"]["content"]
+    
+    except requests.ConnectionError:
+        print("\n❌ Cannot connect to Ollama. Ensure Ollama is running: ollama serve")
+        return None
+    except KeyError as e:
+        print(f"\n❌ Ollama response error: Missing key {e}")
+        return None
+    except ValueError as e:
+        print(f"\n❌ Ollama response error: Invalid response {e}")
+        return None
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        return None
+
+def prune_conversation() -> None:
+    """
+    Keep conversation under control by maintaining only recent messages.
+    Preserves system prompt and last MAX_CONVERSATION_HISTORY messages.
+    """
+    if len(conversation) > MAX_CONVERSATION_HISTORY + 1:
+        # Keep system prompt (index 0) and last N messages
+        system_msg = conversation[0]
+        recent_msgs = conversation[-(MAX_CONVERSATION_HISTORY):]
+        conversation.clear()
+        conversation.append(system_msg)
+        conversation.extend(recent_msgs)
+
 # ============================================================================
 # MANDATORY BROWSER TOOL ENFORCEMENT
 # ============================================================================
@@ -78,10 +134,11 @@ def force_browser_tool(user_input: str) -> str:
     tool_result = route_tool(tool_call)
     return tool_result
 
-def ask_jarvis_final_answer(user_input: str, tool_result: str) -> str:
+def ask_jarvis_final_answer(user_input: str, tool_result: str):
     """
     LLM-only call to generate final answer using tool results.
     Instructs LLM to use ONLY tool data and not call tools again.
+    Returns tuple (success: bool, reply: str).
     """
     prompt = (
         f"User asked: {user_input}\n\n"
@@ -94,22 +151,25 @@ def ask_jarvis_final_answer(user_input: str, tool_result: str) -> str:
     
     conversation.append({"role": "user", "content": prompt})
     
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL,
-            "messages": conversation,
-            "stream": False
-        }
-    ).json()
+    reply = call_llm(conversation)
     
-    reply = response["message"]["content"]
+    if reply is None:
+        # Error already printed by call_llm()
+        conversation.pop()  # Remove message that failed
+        return False, ""
+    
     conversation.append({"role": "assistant", "content": reply})
     
     # Sanitize response for hallucination indicators
-    sanitize_response(reply)
+    try:
+        sanitize_response(reply)
+    except RuntimeError as e:
+        print(f"\n⚠️ {e}")
+        conversation.pop()  # Remove the failed response
+        return False, ""
     
-    return reply
+    prune_conversation()
+    return True, reply
 
 def main():
     print("🤖 JARVIS online. Internet tools available.")
@@ -133,23 +193,21 @@ def main():
                 continue
             
             # Call LLM only ONCE to summarize tool result
-            final_reply = ask_jarvis_final_answer(user_input, tool_result)
-            print(f"\n🤖 JARVIS (with internet):\n{final_reply}")
+            success, final_reply = ask_jarvis_final_answer(user_input, tool_result)
+            if success:
+                print(f"\n🤖 JARVIS (with internet):\n{final_reply}")
         
         else:
             # NORMAL FLOW: No trigger keywords, use standard LLM flow
             conversation.append({"role": "user", "content": user_input})
 
-            response = requests.post(
-                OLLAMA_URL,
-                json={
-                    "model": MODEL,
-                    "messages": conversation,
-                    "stream": False
-                }
-            ).json()
+            reply = call_llm(conversation)
+            
+            if reply is None:
+                # Error already printed by call_llm(), message already removed
+                conversation.pop()  # Remove user message that failed
+                continue
 
-            reply = response["message"]["content"]
             conversation.append({"role": "assistant", "content": reply})
 
             print(f"\n🤖 JARVIS:\n{reply}")
@@ -163,24 +221,23 @@ def main():
                     "content": f"Tool result:\n{tool_result}"
                 })
 
-                # Call LLM once more to summarize tool result
                 conversation.append({
                     "role": "user",
                     "content": "Summarize the tool result and answer the user."
                 })
                 
-                response = requests.post(
-                    OLLAMA_URL,
-                    json={
-                        "model": MODEL,
-                        "messages": conversation,
-                        "stream": False
-                    }
-                ).json()
+                final_reply = call_llm(conversation)
+                
+                if final_reply is None:
+                    # Error already printed by call_llm()
+                    conversation.pop()  # Remove user message that failed
+                    conversation.pop()  # Remove tool result that failed
+                    continue
 
-                final_reply = response["message"]["content"]
                 conversation.append({"role": "assistant", "content": final_reply})
                 print(f"\n🤖 JARVIS (with tool):\n{final_reply}")
+            
+            prune_conversation()
 
 
 if __name__ == "__main__":
