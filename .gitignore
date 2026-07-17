@@ -19,5 +19,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+dist/
+
 # Logs
 *.log
