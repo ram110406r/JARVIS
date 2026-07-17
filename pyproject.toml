@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis"
+version = "0.1.0"
+description = "A local, safety-conscious AI assistant"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "requests>=2.31.0",
+  "rich>=13.7.0",
+  "duckduckgo-search>=3.8.5"
+]
+
+[project.scripts]
+jarvis = "jarvis:main"

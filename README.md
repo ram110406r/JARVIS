@@ -1,254 +1,182 @@
 
 # JARVIS - Just A Rather Very Intelligent System
 
-A local, system-level AI assistant running on a laptop with strict safety enforcement and real-time internet access.
+> **An AI Operating System for Developers and Founders**
 
-## Overview
+JARVIS is evolving from a terminal-based AI assistant into an intelligent **desktop AI companion**—similar to HeyClicky—focused on developers, founders, and productivity professionals.
 
-JARVIS is a controlled, deterministic AI agent that runs locally via Ollama. It integrates with multiple tools (browser, filesystem, terminal) while maintaining strict rules to prevent hallucination and ensure accurate, up-to-date responses.
+## Vision 2.0
 
-**Key Philosophy:** Stability and correctness over verbosity.
+See [VISION.md](VISION.md) for the complete long-term vision, or [ROADMAP.md](ROADMAP.md) to track progress.
 
-## Features
+### Current Phase: Phase 1 — Desktop Companion (MVP)
 
-### Core Capabilities
-- **Local LLM Integration** — Runs on Ollama (supports llama3, mixtral, etc.)
-- **Real-time Internet Access** — DuckDuckGo browser tool for live information
-- **System-Level Tools** — Filesystem and terminal access (controlled)
-- **Single-Cycle Execution** — Each request resolves in at most 2 LLM calls
+JARVIS is currently a controlled, deterministic AI agent that runs locally via Ollama. It integrates with browser, filesystem, and terminal tools while preserving strict safeguards against hallucination and unsafe operations.
 
-### Safety & Enforcement Layer
-- **Mandatory Browser Tool Enforcement** — Triggers on keywords: `latest`, `current`, `version`, `recent`, `update`, `release`, `breaking`, `live`, `real-time`
-- **Hallucination Detection** — Blocks responses containing: `"knowledge cutoff"`, `"as of my knowledge"`, etc.
-- **No Memory Fallback** — Cannot answer "latest/version" questions from training data
-- **Single Tool Call Limit** — Max one tool per request
-- **Deterministic Responses** — No looping, no recursion, no chatbot behavior
-
-## Architecture
-
-```
-jarvis.py                  # Main controller with enforcement layer
-├── tools/
-│   ├── router.py         # Tool routing logic
-│   ├── browser.py        # Internet access via DuckDuckGo
-│   ├── filesystem.py     # Safe file operations
-│   └── terminal.py       # Shell command execution
-├── system_prompt.xml     # LLM system prompt (11 sections)
-└── memory/
-    └── context.json      # Conversation context storage
-```
+This terminal interface is the foundation for the desktop companion experience that will replace it in Phase 1.
 
 ## Installation
 
-### Requirements
-- Python 3.8+
-- Ollama (running locally)
-- `requests` library
-- `rich` library (for terminal formatting)
+### Prerequisites
+- Python 3.9+
+- Ollama running locally
+- Internet connection (for browser searches)
 
 ### Setup
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd JARVIS
+# 1. Install dependencies
+python -m pip install -r requirements.txt
 
-# Install dependencies
-pip install requests rich
+# 2. Run tests to verify setup
+python -m pytest -q
 
-# Ensure Ollama is running
-ollama serve  # In another terminal
+# 3. Start Ollama (in a separate terminal)
+ollama serve
 
-# Start JARVIS
+# 4. Run JARVIS
 python jarvis.py
 ```
 
-## Usage
+### Configuration
 
-### Basic Interaction
-
-```
-🤖 JARVIS online. Internet tools available.
-
-🧑‍💻 You: What is the latest Python version?
-[ENFORCED] Trigger keyword detected. Browser tool mandatory.
-
-🤖 JARVIS (with internet):
-Python 3.13.1 is the latest stable release (released January 2025).
-```
-
-### Without Trigger Keywords (Normal LLM Mode)
-
-```
-🧑‍💻 You: What is Python used for?
-
-🤖 JARVIS:
-Python is a versatile programming language used for...
-```
-
-### With Optional Tool Usage
-
-If the LLM requests a tool (non-enforced cases), JARVIS will invoke it and summarize results:
-
-```
-🤖 JARVIS:
-<tool:browser>current weather in New York</tool:browser>
-
-🤖 JARVIS (with internet):
-The current weather in New York is...
-```
-
-## Enforcement Rules
-
-### 1. Mandatory Browser Keywords
-
-These keywords **force** browser tool invocation:
-
-| Keyword | Triggers Browser |
-|---------|------------------|
-| `latest` | ✅ |
-| `current` | ✅ |
-| `now` | ✅ |
-| `today` | ✅ |
-| `version` | ✅ |
-| `recent` | ✅ |
-| `update` | ✅ |
-| `release` | ✅ |
-| `breaking` | ✅ |
-| `live` | ✅ |
-| `real-time` | ✅ |
-
-### 2. Execution Flow
-
-**With Trigger Keywords:**
-1. Python detects keyword
-2. Browser tool invoked directly (before LLM)
-3. LLM called ONCE to summarize results
-4. Final answer based only on live data
-
-**Without Trigger Keywords:**
-1. LLM processes query
-2. If LLM requests tool, invoke it
-3. LLM summarizes tool results
-4. Final answer provided
-
-### 3. Hallucination Prevention
-
-Banned phrases that trigger hard fail:
-- `"knowledge cutoff"`
-- `"as of my knowledge"`
-- `"as of my training"`
-- `"my knowledge"`
-- `"i cannot access"`
-
-If detected, JARVIS raises a `RuntimeError` and blocks the response.
-
-### 4. Single-Cycle Guarantee
-
-- Max 1 tool invocation per request
-- Max 2 LLM calls per request
-- No recursive reasoning
-- No automatic retries
-
-## Tools
-
-### Browser (`<tool:browser>`)
-**Function:** Fetch real-time information from DuckDuckGo
-
-```
-<tool:browser>query</tool:browser>
-```
-
-**Use Cases:**
-- Latest versions/releases
-- Current events
-- Real-world facts
-- Stock prices, weather, news
-
-**Enforcement:** Mandatory for trigger keywords
-
-### Filesystem (`<tool:filesystem>`)
-**Function:** Safe file read/write operations
-
-```
-<tool:filesystem>read /path/to/file</tool:filesystem>
-```
-
-**Permissions:** Restricted to approved directories
-
-### Terminal (`<tool:terminal>`)
-**Function:** Shell command execution
-
-```
-<tool:terminal>command</tool:terminal>
-```
-
-**Mode:** Dry-run by default; explicit approval required for state-changing commands
-
-## Configuration
-
-### System Prompt
-Located in `system_prompt.xml`. Contains 11 enforced sections:
-
-1. **Core Identity** — Name, description, persona
-2. **Execution Model** — Single-cycle principles
-3. **Tool Access Policy** — Available tools
-4. **Tool Call Rules** — Format, limits, frequencies
-5. **Tool Result Handling** — Authoritative results, no re-fetching
-6. **Conversation Management** — Stateless, fresh requests
-7. **Internet Safety** — No hallucination, mandatory browser usage
-8. **Mandatory Tool Enforcement** — Keyword triggers, memory invalidation
-9. **Strict Response Format** — Tool call format, no filler
-10. **Ban Chatbot Patterns** — Forbidden phrases
-11. **Performance Optimization** — Short, direct answers
-
-### LLM Model
-Edit `OLLAMA_URL` and `MODEL` in `jarvis.py`:
+Edit [jarvis.py](jarvis.py#L9-L10) to customize:
 
 ```python
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "llama3"  # or "mixtral"
+MODEL = "llama3"  # or mistral, neural-chat, etc.
 ```
 
-## Exit Commands
+## Architecture
 
+Current architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), including Phase 1+ evolution.
+
+**Current (Terminal MVP):**
+```text
+jarvis.py                  # Main controller with enforcement logic
+├── tools/
+│   ├── router.py         # Tool routing logic
+│   ├── browser.py        # Browser search (DuckDuckGo)
+│   ├── filesystem.py     # Sandboxed file operations
+│   ├── terminal.py       # Dry-run command validation
+│   └── common.py         # Shared utilities
+├── system_prompt.xml     # LLM system prompt
+├── memory/               # Conversation state
+└── logs/                 # Runtime logs
 ```
-exit
-quit
-Ctrl+C
+
+**Phase 1 Target (Desktop):**
+See [VISION.md](VISION.md#high-level-architecture) for the desktop companion architecture with voice, vision, and context awareness.
+
+## Current Tools
+
+### Browser
 ```
+<tool:browser>query</tool:browser>
+```
+Real-time search via DuckDuckGo.
+
+### Filesystem
+```
+<tool:filesystem>create file 'name.txt' content 'hello'</tool:filesystem>
+```
+Sandboxed file operations (create, read, list, delete).
+
+### Terminal
+```
+<tool:terminal>echo hello</tool:terminal>
+```
+Dry-run command inspection (validation only, no execution).
+
+### Coming in Phase 1
+- Voice input/output
+- Screenshot capture & analysis
+- OCR support
+- Context awareness
+- See [VISION.md](VISION.md) for the complete roadmap
+
+## Safety & Design
+
+JARVIS maintains strict safety constraints:
+
+- ✅ **Trigger keywords** enforce browser tool for real-time queries
+- ✅ **Hallucination detection** blocks knowledge cutoff responses
+- ✅ **Sandboxed filesystem** restricts file operations
+- ✅ **Dry-run terminal** validates but never executes commands
+- ✅ **Bounded history** aggressively prunes conversation
+- ✅ **Single tool per request** prevents tool chaining loops
+
+For detailed design rules, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## What's Next?
+
+JARVIS is transitioning to a **desktop companion** experience:
+
+**Phase 1 (Q3-Q4 2026):** Desktop widget, voice input/output, screenshots
+**Phase 2 (Q4 2026 - Q1 2027):** Context awareness
+**Phase 3 (Q1-Q2 2027):** Vision system
+**Phase 5 (Q3 2027):** Intelligent planner
+**Phase 7 (Q1 2028):** Developer assistant
+**Phase 10 (Q4 2028):** Plugin ecosystem
+
+See [ROADMAP.md](ROADMAP.md) for detailed milestones and [VISION.md](VISION.md) for the complete 10-phase roadmap.
+
+## Testing
+
+Run the test suite:
+
+```bash
+python -m pytest -q
+python -m pytest -q --cov=tools    # With coverage
+python -m pytest -v                 # Verbose output
+```
+
+---
 
 ## Troubleshooting
 
-### Exit Code 1
-- Check Ollama is running: `ollama serve`
-- Verify network connectivity for browser tool
-- Check `system_prompt.xml` is present
+**Ollama connection error:**
+```bash
+ollama serve
+```
 
-### Browser Tool Returns Empty
-- Check internet connection
-- Verify DuckDuckGo is accessible
-- Query may have no results
+**Ensure prerequisites:**
+- Python 3.9+
+- Internet connection
+- Ollama running on localhost:11434
 
-### Hallucination Error
-- LLM attempted to answer from memory on a "latest/version" question
-- Browser tool should have been invoked first
-- Check system prompt enforcement is active
+**Check logs:**
+See `logs/` directory for detailed error messages.
 
-## Performance Notes
+---
 
-- **Cold Start:** First query takes ~2-3s (LLM initialization)
-- **Trigger Keyword Query:** ~4-6s (browser + LLM)
-- **Normal Query:** ~1-2s (LLM only)
-- **Memory:** Conversation history stored in process (not persisted)
+## Developer Notes
 
-## Future Enhancements
+**Current Phase:** Phase 1 — Desktop Companion (MVP)
+**Status:** Terminal foundation ready, desktop build begins Q3 2026
 
-- [ ] Persistent conversation storage
-- [ ] Tool caching for repeated queries
-- [ ] Additional tool types (email, calendar, code execution)
-- [ ] Prompt optimization for speed
-- [ ] Offline fallback mode
+- [x] Terminal MVP with tool routing
+- [x] Safety enforcement
+- [x] Conversation memory
+- [ ] Desktop widget (Tauri + React)
+- [ ] Voice interface (Whisper + Piper)
+- [ ] Screenshot analysis
+
+For development guidelines, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Contributing
+
+This is a private research project. Contributions follow:
+- Test coverage required
+- Architecture changes documented
+- Safety constraints preserved
+- Phase alignment maintained
+
+---
 
 ## License
 
@@ -257,8 +185,10 @@ Private project. Use at own risk.
 ## Author
 
 Local AI Research Project
-Date: January 2026
+**Vision 2.0 Initiated:** July 18, 2026
 
 ---
 
-**Last Updated:** January 25, 2026
+**Last Updated:** July 18, 2026  
+**Current Phase:** Phase 1 — Desktop Companion (MVP)  
+**Next Milestone:** Tauri desktop foundation (August 2026)

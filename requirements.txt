@@ -1,3 +1,6 @@
 requests==2.31.0
 rich==13.7.0
 duckduckgo-search==3.8.5
+pytest==7.4.4
+pytest-mock==3.15.1
+pytest-cov==7.1.0
