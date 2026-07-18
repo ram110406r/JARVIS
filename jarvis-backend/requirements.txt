@@ -1,0 +1,20 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Voice (to be installed)
+# openai-whisper==20240314
+# faster-whisper==1.0.0
+# piper-tts==1.2.0
+
+# Vision (to be installed)
+# paddleocr==2.7.0.2
+# pillow==10.0.0
+# transformers==4.35.0
+# torch==2.1.0
+
+# Optional
+python-dotenv==1.0.0
