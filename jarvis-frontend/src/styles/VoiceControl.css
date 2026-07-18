@@ -1,0 +1,137 @@
+.voice-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--surface);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.voice-control.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-button {
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--secondary) 0%, #ff4488 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.2rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 0, 110, 0.4);
+}
+
+.voice-button:active {
+  transform: scale(0.95);
+}
+
+.voice-button.recording {
+  background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
+  box-shadow: 0 0 20px rgba(255, 51, 51, 0.6), inset 0 0 10px rgba(255, 51, 51, 0.3);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 51, 51, 0.6), inset 0 0 10px rgba(255, 51, 51, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 51, 51, 0.8), inset 0 0 15px rgba(255, 51, 51, 0.5);
+  }
+}
+
+.voice-tooltip {
+  background: var(--surface-light);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.recording-indicator {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 51, 51, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
+  font-size: 0.85rem;
+  text-align: center;
+  font-weight: 600;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  49%,
+  100% {
+    opacity: 1;
+  }
+  50%,
+  99% {
+    opacity: 0.5;
+  }
+}
+
+.transcription {
+  background: var(--surface-light);
+  border: 1px solid var(--primary);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.transcription-label {
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.transcription-text {
+  color: var(--text);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.voice-badge {
+  padding: 0.5rem 0.75rem;
+  background: var(--warning);
+  color: #000;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .voice-control {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .voice-button {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .transcription,
+  .recording-indicator {
+    display: none;
+  }
+}
