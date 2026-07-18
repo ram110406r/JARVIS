@@ -135,7 +135,7 @@ async def chat(request: ChatRequest):
     tool_used = None
     
     # Call Ollama service
-    response = ollama_service.chat(request.message, context_str)
+    response = await asyncio.to_thread(ollama_service.chat, request.message, context_str)
     
     # If Ollama offline, fallback to mock response
     if response is None:
@@ -172,7 +172,7 @@ async def voice_websocket(websocket: WebSocket):
                 audio_bytes = data["bytes"]
                 
                 # Transcribe audio bytes using Whisper
-                transcription = voice_service.transcribe_audio(audio_bytes)
+                transcription = await asyncio.to_thread(voice_service.transcribe_audio, audio_bytes)
                 if transcription and transcription.strip():
                     await websocket.send_json({
                         "type": "transcription",
@@ -181,7 +181,7 @@ async def voice_websocket(websocket: WebSocket):
                     
                     # Call LLM chat with the transcription
                     context_str = context_manager.format_for_llm()
-                    response_text = ollama_service.chat(transcription, context_str)
+                    response_text = await asyncio.to_thread(ollama_service.chat, transcription, context_str)
                     if not response_text:
                         response_text = f"Offline fallback. Heard: '{transcription}'"
                     
@@ -191,7 +191,7 @@ async def voice_websocket(websocket: WebSocket):
                     })
                     
                     # Convert response to speech audio bytes using TTS
-                    audio_response = voice_service.synthesize_speech(response_text)
+                    audio_response = await asyncio.to_thread(voice_service.synthesize_speech, response_text)
                     if audio_response:
                         await websocket.send_bytes(audio_response)
                 else:
@@ -208,7 +208,7 @@ async def voice_websocket(websocket: WebSocket):
                     break
                 
                 context_str = context_manager.format_for_llm()
-                response_text = ollama_service.chat(message, context_str)
+                response_text = await asyncio.to_thread(ollama_service.chat, message, context_str)
                 if not response_text:
                     response_text = f"Offline fallback. Received text: {message}"
                 
@@ -243,7 +243,7 @@ async def screenshot(analyze: bool = False):
         os.makedirs("public", exist_ok=True)
         save_path = os.path.join("public", "screenshot.png")
         
-        path = screenshot_service.capture_screenshot(save_path)
+        path = await asyncio.to_thread(screenshot_service.capture_screenshot, save_path)
         if not path:
             return {
                 "success": False,
@@ -255,7 +255,7 @@ async def screenshot(analyze: bool = False):
         analysis = None
         if analyze:
             # Analyze screenshot using ScreenshotService
-            analysis = screenshot_service.analyze_screenshot(path, "Describe what is on this screen")
+            analysis = await asyncio.to_thread(screenshot_service.analyze_screenshot, path, "Describe what is on this screen")
             
         # Return public web URL path
         return {
@@ -289,9 +289,11 @@ async def get_context():
         }
     """
     try:
-        active_window = context_manager.detect_active_window()
-        clipboard = context_manager.get_clipboard()
-        cursor = context_manager.get_cursor_position()
+        active_window, clipboard, cursor = await asyncio.gather(
+            asyncio.to_thread(context_manager.detect_active_window),
+            asyncio.to_thread(context_manager.get_clipboard),
+            asyncio.to_thread(context_manager.get_cursor_position)
+        )
         cursor_pos = (cursor[0], cursor[1]) if cursor else None
         
         await context_manager.update_context(

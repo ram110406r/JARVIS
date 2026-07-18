@@ -5,16 +5,23 @@ python-multipart==0.0.6
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# Voice (to be installed)
-# openai-whisper==20240314
+# Voice
+openai-whisper==20231117
+gTTS==2.5.1
 # faster-whisper==1.0.0
 # piper-tts==1.2.0
 
-# Vision (to be installed)
+# Vision & Desktop Integration
+mss==9.0.1
+pillow==10.0.0
+pygetwindow==0.0.9
+pyperclip==1.9.0
+pyautogui==0.9.54
+duckduckgo-search==5.3.1
 # paddleocr==2.7.0.2
-# pillow==10.0.0
 # transformers==4.35.0
 # torch==2.1.0
 
-# Optional
+# Optional / Configuration
 python-dotenv==1.0.0
+
